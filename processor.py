@@ -8,6 +8,7 @@ from io import BytesIO
 from datetime import datetime
 from typing import Generator, List, Dict, Any 
 from dotenv import load_dotenv
+from state_manager import initialize_session_state
 
 load_dotenv()
 

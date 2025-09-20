@@ -1,5 +1,6 @@
 import streamlit as st
 import time, hashlib
+from state_manager import initialize_session_state
 
 # Function to inject CSS
 def inject_custom_css():
@@ -177,61 +178,49 @@ def inject_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
-
 def render_header():
     st.markdown('<h1 class="main-header">⚖️ DemiDoc Pro</h1>', unsafe_allow_html=True)
     st.markdown('<p class="subtitle">Advanced Legal Document AI Assistant</p>', unsafe_allow_html=True)
 
 
-def render_sidebar(processor):
-    col_toggle, col_spacer = st.columns([1, 10])
-    with col_toggle:
-        if st.button("☰ Menu", key="sidebar_toggle", help="Toggle Document Panel"):
-            st.session_state.sidebar_visible = not st.session_state.sidebar_visible
 
-    if st.session_state.sidebar_visible:
-        with st.sidebar:
-            st.markdown("### 📄 Document Management")
+def render_document_section(processor):
+    initialize_session_state()  # Make sure all session keys exist
 
-            if st.session_state.document_uploaded:
-                st.markdown('<span class="status-indicator status-online"></span>**Document Ready**', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="status-indicator status-offline"></span>**No Document**', unsafe_allow_html=True)
+    st.markdown("### 📄 Upload Document")
 
-            uploaded_file = st.file_uploader("📁 Choose PDF Document", type=["pdf"])
-            if uploaded_file:
-                file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8]
-                if (not st.session_state.document_uploaded or 
-                    st.session_state.current_document_hash != file_hash or 
-                    st.button("🔄 Reprocess Document")):
+    uploaded_file = st.file_uploader("📁 Choose PDF Document", type=["pdf"])
+    if uploaded_file:
+        file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8]
+        if (not st.session_state.document_uploaded or 
+            st.session_state.current_document_hash != file_hash or 
+            st.button("🔄 Reprocess Document")):
 
-                    with st.spinner("🔍 Processing document..."):
-                        extraction_result = processor.extract_pdf_with_metadata(uploaded_file.getvalue())
-                        if extraction_result["success"]:
-                            chunks = processor.create_enhanced_chunks(extraction_result["text"], extraction_result["metadata"])
-                            if chunks and processor.ensure_embeddings():
-                                texts = [c["text"] for c in chunks]
-                                from langchain_community.vectorstores import FAISS
-                                st.session_state.vector_store = FAISS.from_texts(texts, embedding=processor.embeddings)
-                                st.session_state.document_uploaded = True
-                                st.session_state.document_metadata = extraction_result["metadata"]
-                                st.session_state.current_document_hash = file_hash
-                                st.session_state.messages = []
-                                processor.processing_stats = {k: 0 for k in processor.processing_stats}
-                                st.success("✅ Document processed successfully!")
-                                st.balloons()
-                        else:
-                            st.error("❌ Failed to process document")
+            with st.spinner("🔍 Processing document..."):
+                extraction_result = processor.extract_pdf_with_metadata(uploaded_file.getvalue())
+                if extraction_result["success"]:
+                    chunks = processor.create_enhanced_chunks(
+                        extraction_result["text"], 
+                        extraction_result["metadata"]
+                    )
+                    if chunks and processor.ensure_embeddings():
+                        texts = [c["text"] for c in chunks]
+                        from langchain_community.vectorstores import FAISS
+                        st.session_state.vector_store = FAISS.from_texts(texts, embedding=processor.embeddings)
+                        st.session_state.document_uploaded = True
+                        st.session_state.document_metadata = extraction_result["metadata"]
+                        st.session_state.current_document_hash = file_hash
+                        st.session_state.messages = []
+                        st.success("✅ Document processed successfully!")
+                        st.balloons()
+                else:
+                    st.error("❌ Failed to process document")
 
-            if st.session_state.document_uploaded:
-                st.markdown("---")
-                st.markdown("### 📈 Session Stats")
-                stats = processor.processing_stats
-                st.metric("Total Queries", stats["total_queries"])
-                st.metric("Successful Responses", stats["successful_responses"])
 
 
 def render_chat(processor):
+    initialize_session_state()
+
     st.markdown('<div class="chat-header">💬 AI Legal Assistant</div>', unsafe_allow_html=True)
 
     for msg in st.session_state.messages:
@@ -249,23 +238,32 @@ def render_chat(processor):
             with st.chat_message("assistant"):
                 thinking = st.empty()
                 thinking.markdown("🤔 Thinking...")
+
                 docs = st.session_state.vector_store.similarity_search(prompt, k=4)
                 context = "\n\n".join([d.page_content for d in docs])
                 analysis = processor.analyze_document_enhanced(context, st.session_state.document_metadata)
                 context_result = processor.understand_context_enhanced(analysis, prompt, context)
+
                 response_placeholder = st.empty()
                 text = ""
                 for chunk in processor.generate_enhanced_explanation(analysis, context_result, prompt):
                     text += chunk
                     response_placeholder.markdown(text + "▌")
+
                 response_placeholder.markdown(text)
                 st.session_state.messages.append({"role": "assistant", "content": text})
                 thinking.empty()
 
 
+
 def render_footer():
     st.markdown("---")
-    col1, col2, col3 = st.columns(3)
-    with col1: st.markdown("🧠 **3-Layer AI Architecture**")
-    with col2: st.markdown("🛡️ **Fixed Statistics Tracking**")
-    with col3: st.markdown("⚡ **Production Ready**")
+    st.markdown(
+        """
+        <div style='text-align: center; font-size: 16px; font-weight: bold;'>
+            Your AI Assistant for Legal Document Clarity and Confidence
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
