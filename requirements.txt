@@ -1,0 +1,31 @@
+# UI
+streamlit
+
+# Environment Variables
+python-dotenv
+
+# Google Gemini LLM
+google-generativeai
+
+# LangChain Core + Extensions
+langchain
+langchain-community
+langchain-huggingface
+
+# Embeddings / NLP
+sentence-transformers
+torch
+transformers
+
+# Vector Stores
+faiss-cpu
+
+# Data Handling
+numpy
+pandas
+
+# PDF Parsing
+PyPDF2
+
+
+
