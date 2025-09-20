@@ -14,8 +14,8 @@ load_dotenv()
 
 class EnhancedLegalDocumentProcessor:
     def __init__(self):
-        #self.api_key = os.getenv("GOOGLE_API_KEY")
-        self.api_key = st.secrets["GOOGLE_API_KEY"]
+        self.api_key = os.getenv("GOOGLE_API_KEY")
+        # self.api_key = st.secrets["GOOGLE_API_KEY"]
 
         if not self.api_key:
             st.error("🔑 Google API key required. Set GOOGLE_API_KEY in environment.")
